@@ -4,8 +4,8 @@ import pygame as pg
 pg.init()
 
 # Window
-screen_size = 1000
-TILE_SIZE = 25
+screen_size = 500
+TILE_SIZE = 50
 
 SCREEN_HEIGHT = screen_size
 SCREEN_WIDTH = screen_size
@@ -15,21 +15,14 @@ pg.display.set_caption("I want to die")
 # Assertion: display and tile alignment
 assert SCREEN_HEIGHT % TILE_SIZE == 0, "screen_size should be a multiple of TILE_SIZE"
 
-# Clock
+# Clock for frame rate and game speed
 clock = pg.time.Clock()
-FPS = 15
-
-# Player scaled to display and tile size
-scale = SCREEN_HEIGHT/(2*TILE_SIZE)
-position_center = scale*TILE_SIZE
-size = TILE_SIZE+1
-
-player = pg.Rect((position_center, position_center, size, size))
-
+FPS = 10
 
 # Grid
 BACKGROUND_COLOR = (0, 0, 0)
 LINE_COLOR = (200, 200, 200)
+SNAKE_COLOR = (50, 200, 50)
 
 
 def draw_grid(tile_size):
@@ -43,8 +36,66 @@ def draw_grid(tile_size):
     # horizontal lines
     for y in range(tile_size, SCREEN_HEIGHT, tile_size):
         pg.draw.line(screen, LINE_COLOR, (0, y), (SCREEN_WIDTH, y))
-    pass
 
+
+class Snake:
+    """Snake class"""
+
+    def __init__(self, x, y, color):
+        # Position and image of snake
+        self.x = x
+        self.y = y
+        self.color = color
+        self.image = pg.Surface((TILE_SIZE, TILE_SIZE))
+        self.rect = self.image.get_rect(topleft=(self.x, self.y))
+
+        # Default attributes for movement of snake
+        self.moving = False
+        self.velocity = 1
+        self.dx = self.velocity
+        self.dy = 0
+
+    def move(self):
+        """Snake's movement"""
+        if self.moving:
+            self.x += self.dx
+            self.y += self.dy
+
+    def control(self):
+        """Control snake's direction based on key press"""
+        key = pg.key.get_pressed()
+
+        # Snake starts when any key is pressed
+        if any(key):
+            self.moving = True
+
+        if key[pg.K_a]:
+            self.dx = -self.velocity
+            self.dy = 0
+        elif key[pg.K_d]:
+            self.dx = self.velocity
+            self.dy = 0
+        elif key[pg.K_w]:
+            self.dx = 0
+            self.dy = -self.velocity
+        elif key[pg.K_s]:
+            self.dx = 0
+            self.dy = self.velocity
+
+    def update(self):
+        """Update snake's position on screen"""
+        # Fill snake
+        self.image.fill(self.color)
+
+        # Snake position (inside tiles)
+        self.rect.x = self.x * TILE_SIZE
+        self.rect.y = self.y * TILE_SIZE
+
+        # Draw snake
+        screen.blit(self.image, self.rect)
+
+
+snake = Snake(0, 0, SNAKE_COLOR)
 
 # Loop
 run = True
@@ -56,21 +107,13 @@ while run:
     draw_grid(TILE_SIZE)
 
     # The Player
-    pg.draw.rect(screen, (255, 0, 0), player)
+    snake.control()
+    snake.move()
+    snake.update()
 
-    # Movement
-    key = pg.key.get_pressed()
-    if key[pg.K_a]:
-        player.move_ip(-TILE_SIZE, 0)
-    elif key[pg.K_d]:
-        player.move_ip(TILE_SIZE, 0)
-    elif key[pg.K_w]:
-        player.move_ip(0, -TILE_SIZE)
-    elif key[pg.K_s]:
-        player.move_ip(0, TILE_SIZE)
-
-    # Quit game
+    # Event handler
     for event in pg.event.get():
+        # Quit game
         if event.type == pg.QUIT:
             run = False
 
