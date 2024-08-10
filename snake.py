@@ -1,16 +1,18 @@
 # Snake the game
+from pprint import pprint
+
 import pygame as pg
 
 pg.init()
 
 # Window
-screen_size = 500
+screen_size = 1000
 TILE_SIZE = 50
 
 SCREEN_HEIGHT = screen_size
 SCREEN_WIDTH = screen_size
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pg.display.set_caption("I want to die")
+pg.display.set_caption("Kill me")
 
 # Assertion: display and tile alignment
 assert SCREEN_HEIGHT % TILE_SIZE == 0, "screen_size should be a multiple of TILE_SIZE"
@@ -55,6 +57,10 @@ class Snake:
         self.dx = self.velocity
         self.dy = 0
 
+    def position(self):
+        """Snake's position"""
+        return self.x, self.y
+
     def move(self):
         """Snake's movement"""
         if self.moving:
@@ -97,6 +103,17 @@ class Snake:
 
 snake = Snake(0, 0, SNAKE_COLOR)
 
+
+def collision(x, y) -> None:
+    global run
+    number_tiles = screen_size / TILE_SIZE
+    if any([x >= number_tiles,
+            x < 0,
+            y >= number_tiles,
+            y < 0]):
+        run = False
+
+
 # Loop
 run = True
 while run:
@@ -110,15 +127,16 @@ while run:
     snake.control()
     snake.move()
     snake.update()
+    collision(snake.position()[0], snake.position()[1])
 
     # Event handler
     for event in pg.event.get():
         # Quit game
-        if event.type == pg.QUIT:
+        if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
             run = False
 
     pg.display.update()
 
 pg.quit()
 
-# Event handler
+
