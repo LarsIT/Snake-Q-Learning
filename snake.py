@@ -8,6 +8,7 @@ screen = pg.display.set_mode([WINDOW] * 2)
 clock = pg.time.Clock()
 FPS = 60
 time, TIMESTEP = 0, 110
+pg.display.set_caption("Kill me")
 
 # Position randomizer
 RANGE = (TILE_SIZE // 2, WINDOW - TILE_SIZE // 2, TILE_SIZE)
@@ -25,12 +26,22 @@ snake_direction = (0, 0)
 
 # Apple instance
 apple = snake.copy()
-apple.center = get_random_position()
+
+
+# Function to check if apple is inside the snake
+def place_apple():
+    while True:
+        apple.center = get_random_position()
+        if not any(segment.collidepoint(apple.center) for segment in segments):
+            break
+
+
+place_apple()
 
 # Game loop
 while True:
     pg.display.flip()
-    clock.tick(60)
+    clock.tick(FPS)
     screen.fill("black")
 
     for event in pg.event.get():
@@ -58,17 +69,19 @@ while True:
         snake.center, apple.center = get_random_position(), get_random_position()
         length, snake_direction = 1, (0, 0)
         segments = [snake.copy()]
+        place_apple()
 
     # Check apple
     if snake.center == apple.center:
-        apple.center = get_random_position()
         length += 1
+        place_apple()
 
     # Draw apple
     pg.draw.rect(screen, "red", apple)
 
     # Draw snake
     [pg.draw.rect(screen, "green", segment) for segment in segments]
+
     # Move snake
     time_now = pg.time.get_ticks()
     if time_now - time > TIMESTEP:
