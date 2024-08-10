@@ -1,142 +1,78 @@
-# Snake the game
-from pprint import pprint
-
 import pygame as pg
+from random import randrange
 
-pg.init()
-
-# Window
-screen_size = 1000
+# Constants for the game
+WINDOW = 1000
 TILE_SIZE = 50
-
-SCREEN_HEIGHT = screen_size
-SCREEN_WIDTH = screen_size
-screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pg.display.set_caption("Kill me")
-
-# Assertion: display and tile alignment
-assert SCREEN_HEIGHT % TILE_SIZE == 0, "screen_size should be a multiple of TILE_SIZE"
-
-# Clock for frame rate and game speed
+screen = pg.display.set_mode([WINDOW] * 2)
 clock = pg.time.Clock()
-FPS = 10
+FPS = 60
+time, TIMESTEP = 0, 110
 
-# Grid
-BACKGROUND_COLOR = (0, 0, 0)
-LINE_COLOR = (200, 200, 200)
-SNAKE_COLOR = (50, 200, 50)
+# Position randomizer
+RANGE = (TILE_SIZE // 2, WINDOW - TILE_SIZE // 2, TILE_SIZE)
+get_random_position = lambda: [randrange(*RANGE), randrange(*RANGE)]
 
+# Control restriction dictionary
+control_direction = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 1, pg.K_d: 1}
 
-def draw_grid(tile_size):
-    """Function to draw a grid for the game, the snake can only move according to the grid"""
-    screen.fill(BACKGROUND_COLOR)
+# Snake instance
+snake = pg.rect.Rect([0, 0, TILE_SIZE - 2, TILE_SIZE - 2])
+snake.center = get_random_position()
+length = 1
+segments = [snake.copy()]
+snake_direction = (0, 0)
 
-    # vertical lines
-    for x in range(tile_size, SCREEN_WIDTH, tile_size):
-        pg.draw.line(screen, LINE_COLOR, (x, 0), (x, SCREEN_HEIGHT))
+# Apple instance
+apple = snake.copy()
+apple.center = get_random_position()
 
-    # horizontal lines
-    for y in range(tile_size, SCREEN_HEIGHT, tile_size):
-        pg.draw.line(screen, LINE_COLOR, (0, y), (SCREEN_WIDTH, y))
+# Game loop
+while True:
+    pg.display.flip()
+    clock.tick(60)
+    screen.fill("black")
 
-
-class Snake:
-    """Snake class"""
-
-    def __init__(self, x, y, color):
-        # Position and image of snake
-        self.x = x
-        self.y = y
-        self.color = color
-        self.image = pg.Surface((TILE_SIZE, TILE_SIZE))
-        self.rect = self.image.get_rect(topleft=(self.x, self.y))
-
-        # Default attributes for movement of snake
-        self.moving = False
-        self.velocity = 1
-        self.dx = self.velocity
-        self.dy = 0
-
-    def position(self):
-        """Snake's position"""
-        return self.x, self.y
-
-    def move(self):
-        """Snake's movement"""
-        if self.moving:
-            self.x += self.dx
-            self.y += self.dy
-
-    def control(self):
-        """Control snake's direction based on key press"""
-        key = pg.key.get_pressed()
-
-        # Snake starts when any key is pressed
-        if any(key):
-            self.moving = True
-
-        if key[pg.K_a]:
-            self.dx = -self.velocity
-            self.dy = 0
-        elif key[pg.K_d]:
-            self.dx = self.velocity
-            self.dy = 0
-        elif key[pg.K_w]:
-            self.dx = 0
-            self.dy = -self.velocity
-        elif key[pg.K_s]:
-            self.dx = 0
-            self.dy = self.velocity
-
-    def update(self):
-        """Update snake's position on screen"""
-        # Fill snake
-        self.image.fill(self.color)
-
-        # Snake position (inside tiles)
-        self.rect.x = self.x * TILE_SIZE
-        self.rect.y = self.y * TILE_SIZE
-
-        # Draw snake
-        screen.blit(self.image, self.rect)
-
-
-snake = Snake(0, 0, SNAKE_COLOR)
-
-
-def collision(x, y) -> None:
-    global run
-    number_tiles = screen_size / TILE_SIZE
-    if any([x >= number_tiles,
-            x < 0,
-            y >= number_tiles,
-            y < 0]):
-        run = False
-
-
-# Loop
-run = True
-while run:
-    # Frame rate
-    clock.tick(FPS)
-
-    # Screen refresh
-    draw_grid(TILE_SIZE)
-
-    # The Player
-    snake.control()
-    snake.move()
-    snake.update()
-    collision(snake.position()[0], snake.position()[1])
-
-    # Event handler
     for event in pg.event.get():
         # Quit game
         if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-            run = False
+            exit()
+        # Control
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_w and control_direction[pg.K_w]:
+                snake_direction = (0, -TILE_SIZE)
+                control_direction = {pg.K_w: 1, pg.K_s: 0, pg.K_a: 1, pg.K_d: 1}
+            elif event.key == pg.K_s and control_direction[pg.K_s]:
+                snake_direction = (0, TILE_SIZE)
+                control_direction = {pg.K_w: 0, pg.K_s: 1, pg.K_a: 1, pg.K_d: 1}
+            elif event.key == pg.K_a and control_direction[pg.K_a]:
+                snake_direction = (-TILE_SIZE, 0)
+                control_direction = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 1, pg.K_d: 0}
+            elif event.key == pg.K_d and control_direction[pg.K_d]:
+                snake_direction = (TILE_SIZE, 0)
+                control_direction = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 0, pg.K_d: 1}
 
-    pg.display.update()
+    # Check collisions
+    self_eating = pg.Rect.collidelist(snake, segments[:-1]) != -1
+    if any([snake.left < 0, snake.right > WINDOW, snake.top < 0, snake.bottom > WINDOW, self_eating]):
+        snake.center, apple.center = get_random_position(), get_random_position()
+        length, snake_direction = 1, (0, 0)
+        segments = [snake.copy()]
 
-pg.quit()
+    # Check apple
+    if snake.center == apple.center:
+        apple.center = get_random_position()
+        length += 1
 
+    # Draw apple
+    pg.draw.rect(screen, "red", apple)
 
+    # Draw snake
+    [pg.draw.rect(screen, "green", segment) for segment in segments]
+    # Move snake
+    time_now = pg.time.get_ticks()
+    if time_now - time > TIMESTEP:
+        time = time_now
+        snake.move_ip(snake_direction)
+        segments.append(snake.copy())
+        segments = segments[-length:]
